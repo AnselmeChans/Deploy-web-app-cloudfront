@@ -38,3 +38,34 @@ Bonus points if you add http:// in front of the load balancer DNS Name in the ou
 
 ### Starter Code
 
+
+### Auto-scaling concept 
+
+In these part of autoscaling our server, we will follow this 2 important steps : 
+
+#### Scaling Policy 
+A Scaling Policy is the criteria used to decide when to Add or Remove Servers from your Auto Scaling Group.
+It's here where we  decide based on the criteria to choose to turn those servers off when they are not needed and then turn them back on when there is demand.
+We could too, create a CloudWatch Alarm with a custom metric that counts the number of web visitors in the last 2 hours, if the number is less than 100, for example, perhaps a single server is enough. This will be a trigger to Scale Down if there is more than one server running at the time.
+
+#### Launch configuration
+We should thing of launch configuration as a template or a recipe. We are instructing the Auto Scaling service HOW to run your web application. For example: My application requires 2GB RAM , 4 vCPUs, 10GB of Disk Space, The Java runtime version 8 Or NodeJS 10.0, for example. All this on top of a standard distribution of Linux or Windows Read more about Launch Configuration.
+
+Once an Auto Scaling group knows how to launch new copies of your application, then the process of scaling up and down can take place.
+
+
+
+
+
+
+# Resolution of the work 
+
+## Settting Up of our Environment 
+
+## Deploy security groups
+
+
+
+## Creating Autoscalling groups 
+
+Create server based on the criteria. 
