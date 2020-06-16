@@ -39,7 +39,7 @@ Bonus points if you add http:// in front of the load balancer DNS Name in the ou
 
 ## Architecture Diagram
 
-![alt text](https://github.com/AnselmeChans/Deploy-web-app-cloudfront/Udacity_Project2_Diagram?raw=true)
+![alt text](https://github.com/AnselmeChans/Deploy-web-app-cloudfront/blob/master/Udacity_Project2_Diagram.jpeg?raw=true)
 
 
 
