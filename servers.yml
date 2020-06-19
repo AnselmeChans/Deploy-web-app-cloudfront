@@ -40,14 +40,14 @@ Resources:
                 !Sub "${EnvironmentName}-VPCID"
             SecurityGroupIngress:
             - IpProtocol: tcp
-                FromPort: 80
-                ToPort: 80
-                CidrIp: 0.0.0.0/0
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
             SecurityGroupEgress:
             - IpProtocol: tcp
-                FromPort: 80
-                ToPort: 80
-                CidrIp: 0.0.0.0/0
+              FromPort: 80
+              ToPort: 80
+              CidrIp: 0.0.0.0/0
     
     # Deploy Load Balancer Services 
     LoadBalancersApp: 
@@ -111,8 +111,6 @@ Resources:
             UnhealthyThresholdCount: 5
             VpcId: 
             Fn::ImportValue:
-        
-    
                 AMI:
                     Description: 'The Machine Image to be used. Please use an Ubuntu Machine Image Specific to your region. Default is set to an AMI
                     in the us-west-2 region.'
