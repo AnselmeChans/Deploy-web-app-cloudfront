@@ -8,6 +8,11 @@ There will be two parts to this project:
 -   The first one consist of creating a diagram that we can present as part of your portfolio and as a visual help to understand the CloudFormation script.
 -   The second part is to interpret the instructions as well as our own diagram and create a matching CloudFormation script.
 
+This diagram below shows various cloud infrastructure resources that we will use to provision on the AWS cloud using the AWS command line and CloudFormation tools. 
+
+![alt text](https://github.com/AnselmeChans/Deploy-web-app-cloudfront/blob/master/capture_tools_AWS.png?raw=true)
+
+
 ## Problem 
 
 Our company is creating an Instagram clone called Udagram. Developers pushed the latest version of their code in a zip file located in a public S3 Bucket.
@@ -59,4 +64,14 @@ You will found 2 bash files suche as :
 
 
 There are also a couple of batch files which ease the creation and updating of the stacks. Please ensure that you have a pre-created Key Pair for the Bastion Host. Ensure that you use the same environment variable for all the stacks.
+
+# Instructions 
+
+First create the network by running the create.sh file as below:
+./create.sh udacity-network network.yml network-parameters.json 
+
+Then create servers and bastion host as below: 
+.create.sh udacity-instances servers.yml server-parameters.json 
+
+if you want to update somethings make sure to use the update script
 
