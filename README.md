@@ -12,6 +12,22 @@ This diagram below shows various cloud infrastructure resources that we will use
 
 ![alt text](https://github.com/AnselmeChans/Deploy-web-app-cloudfront/blob/master/capture_tools_AWS.png?raw=true)
 
+## COnfiguration to run create stack 
+
+### Create IAM User
+-   Add User
+-   Attach existing policies directly
+-   Administrator Access 
+-   Download CSV 
+
+### Configure AWS Command line 
+-   pip install awscli
+-   aws configure => Enter your AWS access key and your AWS         secret key and default region name « us-west-2 ».
+-   To verify all is working : aws s3 ls
+
+To Deploy our stack we will use CLoudFormation (Concept of Insfrastructure As Code).
+It s a declarative langage where you declare the ressources what you want. We have to declare with a YAML format in cloud formation 
+
 
 ## Problem 
 
@@ -43,6 +59,9 @@ Bonus points if you add http:// in front of the load balancer DNS Name in the ou
 # Resolution
 
 ## Architecture Diagram
+
+
+Diagrams are a very important starting point for planning our cloud infrastructure. DevOps engineers start with a visual representation of the required cloud infrastructure before they turn it into code.
 
 ![alt text](https://github.com/AnselmeChans/Deploy-web-app-cloudfront/blob/master/Udacity_Project2_Diagram.jpeg?raw=true)
 
