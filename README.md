@@ -90,7 +90,7 @@ First create the network by running the create.sh file as below:
 ./create.sh udacity-network network.yml network-parameters.json 
 
 Then create servers and bastion host as below: 
-.create.sh udacity-instances servers.yml server-parameters.json 
+./create.sh udacity-instances servers.yml server-parameters.json 
 
-if you want to update somethings make sure to use the update script
-
+if you want to update somethings make sure to use the update script: 
+./update.sh udacityProject2 jump-box.yml jumpBox-parameters.json

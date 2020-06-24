@@ -1,222 +1,144 @@
-
 Description: >
-    Hans CERIL / Deploy a highly available web application using CloudFormation
+  Hans CERIL / Deploy a highly available web application using CloudFormation
 
-# ===================================> Parameters <======================================
 Parameters:
+  EnvironmentName:
+    Description: An environment that will be prefixed to resources
+    Type: String
 
-    EnvironmentName: 
-        Description: An environment name that will be prefixed to resource names
-        Type: String 
-    
-    KeyName: 
-        Description: "Name of an existing EC2 KeyPair to enable SSH access to the instance"
-        Type: "AWS::EC2::KeyPair::KeyName"
-        Default: AmitTestKP
-        ConstraintDescription: "must be the name of an existing EC2 KeyPair."
-        
-    
-    AMI:
-        Description: 'The Machine Image to be used. Please use an Ubuntu Machine Image Specific to your region. Default is set to an AMI
-        in the us-west-2 region.'
-        Type: String
-        Default: ami-0b37e9efc396e4c38
+  SSHLocation: 
+    Description: "The IP address range that can be used to SSH to the EC2 instances"
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: "0.0.0.0/0"
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: "must be a valid IP CIDR range of the form x.x.x.x/x."
 
-    InstanceType: 
-        Description: "Bastion EC2 instance type"
-        Type: String
-        Default: "t2.medium"
-  
-# ==================================> RESSOURCES <===================================
 Resources:
-    
-    # Deploy Load Balancer Security groups
-    LoadBalancerSecurityGroups: 
-        Type: AWS::EC2::SecurityGroup
-        Properties:
-            GroupDescription: Allow http to our load balancer
-            VpcId:
-                Fn::ImportValue:
-                !Sub "${EnvironmentName}-VPCID"
-            SecurityGroupIngress:
-            - IpProtocol: tcp
-              FromPort: 80
-              ToPort: 80
-              CidrIp: 0.0.0.0/0
-            SecurityGroupEgress:
-            - IpProtocol: tcp
-              FromPort: 80
-              ToPort: 80
-              CidrIp: 0.0.0.0/0
-    
-    # Deploy Load Balancer Services 
-    LoadBalancersApp: 
-        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-        Properties:
-            Subnets:
-                - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
-                - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
-            SecurityGroups:
-                - Ref: LoadBalancerSecurityGroups
-    
-            Listener:
-                Type: AWS::ElasticLoadBalancingV2::Listener
-                Properties:
-                  DefaultActions:
-                    - Type: forward
-                    TargetGroupArn:
-                      Ref: WebAppTargetGroup
-                  LoadBalancerArn:
-                    Ref: WebAppLB
-                  Port: '80'
-                  Protocol: HTTP
+  LBSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our load balancer
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
 
-    # Deploy Load balancer listener
-    Listener:
-        Type: AWS::ElasticLoadBalancingV2::Listener
-        Properties:
-            DefaultActions:
-            - Type: forward
-                TargetGroupArn:
-                Ref: WebAppTargetGroup
-            LoadBalancerArn:
-                Ref: WebAppLB
-                Port: '80'
-                Protocol: HTTP
+  WebServerSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to our hosts and SSH from local only
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Ref SSHLocation
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65535
+        CidrIp: 0.0.0.0/0
 
-    # Deploy load balancer listener rurles        
-    ALBListenerRule:
-        Type: AWS::ElasticLoadBalancingV2::ListenerRule
-        Properties:
-            Actions:
-                - Type: forward
-                      TargetGroupArn: !Ref 'WebAppTargetGroup'
-                    Conditions:
-                    - Field: path-pattern
-                      Values: [/]
-                    ListenerArn: !Ref 'Listener'
-                    Priority: 1
-    
-    # Deploy load balancr target groups
-    WebAppTargetGroup:
-        Type: AWS::ElasticLoadBalancingV2::TargetGroup
-        Properties:
-            HealthCheckIntervalSeconds: 10
-            HealthCheckPath: /
-            HealthCheckProtocol: HTTP
-            HealthCheckTimeoutSeconds: 8
-            HealthyThresholdCount: 2
-            Port: 8080
-            Protocol: HTTP
-            UnhealthyThresholdCount: 5
-            VpcId: 
-            Fn::ImportValue:
-                AMI:
-                    Description: 'The Machine Image to be used. Please use an Ubuntu Machine Image Specific to your region. Default is set to an AMI
-                    in the us-west-2 region.'
-                    Type: String
-    
+  WebAppLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash 
+          sudo apt-get update -y
+          sudo apt-get install apache2 -y
+          sudo systemctl start apache2.service
+          cd /var/www/html
+          sudo rm index.html
+          sudo wget -P . https://udacityprojectstatic.s3-us-west-2.amazonaws.com/index.html
+      ImageId: ami-005bdb005fb00e791
+      SecurityGroups:
+      - Ref: WebServerSecGroup
+      InstanceType: t3.medium
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sdk"
+        Ebs:
+          VolumeSize: '10'
+  
+  WebAppGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+      - Fn::ImportValue:
+          !Sub "${EnvironmentName}-PRIV-NETS"
+      LaunchConfigurationName:
+        Ref: WebAppLaunchConfig
+      MinSize: '3'
+      MaxSize: '5'
+      TargetGroupARNs:
+      - Ref: WebAppTargetGroup
 
-    # Deploy Launch configurtion instances
-    WebAppLaunchConfig:
-        Type: AWS::AutoScaling::LaunchConfiguration
-        Properties:
-          UserData:
-            Fn::Base64: !Sub |
-              #!/bin/bash
-              # Install docker
-              apt-get update
-              apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-              add-apt-repository \
-              "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-              $(lsb_release -cs) \
-              stable"
-              apt-get update
-              apt-get install -y docker-ce
-              usermod -aG docker ubuntu
-              docker run -p 8080:8080 tomcat:8.0
-          ImageId: ami-005bdb005fb00e791
-          KeyName: that-one
-          SecurityGroups:
-          - Ref: WebServerSecGroup
-          InstanceType: t3.medium
-          BlockDeviceMappings:
-          - DeviceName: "/dev/sdk"
-            Ebs:
-              VolumeSize: '10'
+  WebAppLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
+      - Fn::ImportValue: !Sub "${EnvironmentName}-PUB2-SN"
+      SecurityGroups:
+      - Ref: LBSecGroup
 
-    # Deploy autoscaling
-    WebAppGroup:
-        Type: AWS::AutoScaling::AutoScalingGroup
-        Properties:
-            VPCZoneIdentifier:
-            - Fn::ImportValue: 
-                !Sub "${EnvironmentName}-PRIV-NETS"
-            LaunchConfigurationName:
-            Ref: WebAppLaunchConfig
-            MinSize: '3'
-            MaxSize: '5'
-            TargetGroupARNs:
-            - Ref: WebAppTargetGroup
-    
-    
-    # Deploy Bastion security groups
-    BastionSecurityGroup: 
-        Type: "AWS::EC2::SecurityGroup"
-        Properties: 
-            GroupDescription: "Enable SSH access via port 22"
-            VpcId: 
-                Fn::ImportValue: !Sub "${EnvironmentName}-VPCID"  
-            SecurityGroupIngress: 
-            - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp:  "0.0.0.0/0"
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: WebAppTargetGroup
+      LoadBalancerArn: !Ref WebAppLB
+      Port: '80'
+      Protocol: HTTP
 
-    # Deploy Bastion server 
-    BastionInstance: 
-        Type: "AWS::EC2::Instance"
-        Properties: 
-         InstanceType: !Ref InstanceType
-         SecurityGroupIds: 
-          - !Ref BastionSecurityGroup
-         KeyName: !Ref KeyName
-         ImageId: !Ref AMI
-      
-         SubnetId: 
-          Fn::ImportValue: !Sub "${EnvironmentName}-PUB1-SN"
-    
+  ALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'WebAppTargetGroup'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'Listener'
+      Priority: 1
 
-
-
-# =============================> OUTPUTS <=================================
+  WebAppTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId:
+        Fn::ImportValue:
+          Fn::Sub: "${EnvironmentName}-VPCID"
+          
 Outputs:
-    InstanceId: 
-        Description: "InstanceId of the newly created EC2 instance"
-        Value: 
-         Ref: BastionInstance
-    
-
-        
-    PublicIP: 
-        Description: "Public IP address of the newly created EC2 instance"
-        Value: 
-            "Fn::GetAtt": 
-            - BastionInstance
-            - PublicIp
-    
-    sgBastion:
-        Description: Bastion SecurityGroup Export
-        Value: 
-            !GetAtt
-                - InstanceSecurityGroup
-                - GroupId
-        Export:
-            Name: !Sub "${EnvironmentName}-BastionSecurityGroupID"    
-
-    
-
-         
-
-
+  LoadBalancerDNS:
+    Value: !Join [ "", [ 'http://', !GetAtt WebAppLB.DNSName ]]
+    Export:
+      Name: "DNS-URL" 
